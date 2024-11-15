@@ -39,14 +39,19 @@
             android:layout_height="0dp"
             android:layout_weight="0.50"
             android:background="@drawable/circular_fill"
+            android:min="0"
             android:max="360"
-            android:progress="220"
+            android:progress="0"
             android:progressDrawable="@drawable/circular_progressbar"
             style="?android:attr/progressBarStyleHorizontal"/>
 
-        <Space
+        <TextView
+            android:id="@+id/valueText"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="0.25" />
+            android:layout_weight=".25"
+            android:text="TextView"
+            android:textAlignment="center"
+            android:textSize="20sp" />
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
