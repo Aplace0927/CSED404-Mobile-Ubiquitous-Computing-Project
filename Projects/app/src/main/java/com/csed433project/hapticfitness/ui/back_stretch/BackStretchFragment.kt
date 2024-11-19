@@ -9,8 +9,12 @@ import androidx.core.content.getSystemService
 import android.content.Context
 
 import android.os.Bundle
+import android.os.CombinedVibration
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,6 +32,9 @@ class BackStretchFragment : Fragment() {
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
+
+    private lateinit var vibrationThread: VibrationThread
+    private lateinit var vibratorManager: VibratorManager
 
     private lateinit var sensorManager: SensorManager
     private lateinit var rotVctSensor: Sensor
@@ -61,6 +68,8 @@ class BackStretchFragment : Fragment() {
         sensorHandlerThread = HandlerThread("Gyroscope Event Handler")
         sensorHandlerThread.start()
         sensorWorker = Handler(sensorHandlerThread.looper)
+
+        vibrationThread = VibrationThread()
 
         rotVctSensorEventListener = object: SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
@@ -97,5 +106,28 @@ class BackStretchFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    inner class VibrationThread: Thread() {
+        var vibInterval: Long = 0
+        var vibPattern: CombinedVibration
+
+        init {
+            vibInterval = 200L // 300ms
+            vibPattern = CombinedVibration.createParallel(
+                VibrationEffect.createWaveform(
+                    longArrayOf(0),  // Timings
+                    intArrayOf(0),   // Amplitude
+                    -1              // Repeat
+                )
+            )
+        }
+        override fun run() {
+            vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            sleep(vibInterval)
+            vibratorManager.vibrate(vibPattern)
+        }
+        fun setPatternFromEffect (effect: VibrationEffect): Unit { vibPattern = CombinedVibration.createParallel(effect) }
+        fun setInterval (interval: Long): Unit { vibInterval = interval }
     }
 }
