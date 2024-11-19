@@ -5,7 +5,6 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 
-import androidx.core.content.getSystemService
 import android.content.Context
 
 import android.os.Bundle
@@ -13,7 +12,6 @@ import android.os.CombinedVibration
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.VibrationEffect
-import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.LayoutInflater
 import android.view.View
@@ -22,10 +20,8 @@ import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.csed433project.hapticfitness.databinding.BackstretchBinding
-import kotlin.math.abs
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 
 class BackStretchFragment : Fragment() {
 
@@ -45,12 +41,41 @@ class BackStretchFragment : Fragment() {
     private lateinit var rotVctSensorEventListener: SensorEventListener
     private lateinit var sensorHandlerThread: HandlerThread
     private lateinit var sensorWorker: Handler
+    
     private val rotMat: FloatArray = floatArrayOf(
         1.0F, 0.0F, 0.0F, 0.0F,
         0.0F, 1.0F, 0.0F, 0.0F,
         0.0F, 0.0F, 1.0F, 0.0F,
         0.0F, 0.0F, 0.0F, 1.0F,
     )
+
+    
+    fun actionHandlerExerciseZone (angle: Int): CombinedVibration? {
+        /*
+            Inverse proportional: (angle) 45-120deg -> (intensity) 1-255.
+         */
+        if (45 < angle && angle <= 120) {
+            val interval: Long = 100
+            val strength: Int = Math.max(1, Math.min(255, ((254 * (angle - 45) / (120 - 45)).toDouble().roundToInt())))
+            return CombinedVibration.createParallel(VibrationEffect.createOneShot(interval, strength))
+        }
+        return null
+    }
+
+    fun actionHandlerDangerZone (angle: Int): CombinedVibration? {
+        /*
+            If angle > 120 -> Dangerous signal.
+         */
+
+        if (angle > 120) {
+            val interval: Long = 30
+            val strength: Int = 255
+            return CombinedVibration.createParallel(VibrationEffect.createOneShot(interval, strength))
+        }
+        return null
+    }
+    
+    private val actionHandlerArray: Array<(Int) -> CombinedVibration?> = arrayOf(::actionHandlerExerciseZone, ::actionHandlerDangerZone)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -78,36 +103,29 @@ class BackStretchFragment : Fragment() {
         vibrationWorker = Handler(vibrationThread.looper)
 
         vibrator = VibrationCaller()
-
+        
         rotVctSensorEventListener = object: SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
                 if (event?.sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {
                     SensorManager.getRotationMatrixFromVector(rotMat, event.values)
                     SensorManager.getOrientation(rotMat, orientationAngles)
-                    binding.valueText.text = "%03.3f, %03.3f, %03.3f".format(Math.toDegrees(orientationAngles[0].toDouble()), Math.toDegrees(orientationAngles[1].toDouble()), Math.toDegrees(orientationAngles[2].toDouble()))
+
                     angle = Math.toDegrees(orientationAngles[2].toDouble()).roundToInt()
 
-                    if (angle >= 0) {
-                        binding.progressBar.scaleY = -1.0F
-                        binding.progressBar.setProgress(Math.toDegrees(orientationAngles[2].toDouble()).roundToInt(), true)
-                    } else {
-                        binding.progressBar.scaleY = 1.0F
-                        binding.progressBar.setProgress(-Math.toDegrees(orientationAngles[2].toDouble()).roundToInt(), true)
-                    }
+                    binding.valueText.text = "%03d".format(angle.absoluteValue)
+                    binding.progressBar.scaleY = if (angle >= 0) -1.0F else 1.0F
+                    binding.progressBar.setProgress(angle.absoluteValue, true)
 
-                    // Default Pattern, 500ms @ 45deg -> 10ms @ 180deg
-                    Log.d("VIB", "%s %d %d".format(vibrator.vibEnable.toString(), vibrator.vibInterval, vibrator.vibIntensity))
-                    vibrator.vibEnable = (angle.absoluteValue >= 45)
-                    vibrator.vibInterval = 30
-                    vibrator.vibIntensity = Math.max(1, Math.min(255, ((254 * (angle.absoluteValue - 45) / 135).toDouble().roundToInt())))
-                    vibrationWorker.post(vibrator)
+                    actionHandlerArray.forEach { fn ->
+                        val vibEff = fn(angle.absoluteValue)
+                        if (vibEff != null) {
+                            vibrator.vibPattern = vibEff
+                            vibrationWorker.post(vibrator)
+                        }
+                    }
                 }
             }
-
-            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-
-
-            }
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
         }
 
         sensorManager.registerListener(rotVctSensorEventListener, rotVctSensor, 100000, sensorWorker)
@@ -121,23 +139,10 @@ class BackStretchFragment : Fragment() {
     }
 
     inner class VibrationCaller: Runnable {
-        var vibEnable: Boolean = false
-        var vibInterval: Long = 0
-        var vibIntensity: Int = 1
-        var vibPattern: CombinedVibration
-
-        init {
-            vibEnable = false
-            vibInterval = 30 // 10ms
-            vibIntensity = 1
-            vibPattern = CombinedVibration.createParallel(VibrationEffect.createOneShot(vibInterval, vibIntensity))
-        }
+        lateinit var vibPattern: CombinedVibration
+        val vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
         override fun run() {
-            vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            if (vibEnable) {
-                vibPattern = CombinedVibration.createParallel(VibrationEffect.createOneShot(vibInterval, vibIntensity))
-                vibratorManager.vibrate(vibPattern)
-            }
+            vibratorManager.vibrate(vibPattern)
         }
 
     }
