@@ -19,7 +19,7 @@
     <fragment
         android:id="@+id/nav_back_stretch"
         android:name="com.csed433project.hapticfitness.ui.back_stretch.BackStretchFragment"
-        android:label="@string/menu_gallery"
+        android:label="@string/menu_back_stretch"
         tools:layout="@layout/backstretch" />
 
 </navigation>
