@@ -56,7 +56,9 @@ class BackStretchFragment : Fragment() {
          */
         if (45 < angle && angle <= 120) {
             val interval: Long = 100
-            val strength: Int = Math.max(1, Math.min(255, ((254 * (angle - 45) / (120 - 45)).toDouble().roundToInt())))
+            val strength: Int = 1.coerceAtLeast(
+                255.coerceAtMost(((254 * (angle - 45) / (120 - 45)).toDouble().roundToInt()))
+            )
             return CombinedVibration.createParallel(VibrationEffect.createOneShot(interval, strength))
         }
         return null
@@ -134,6 +136,10 @@ class BackStretchFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        vibratorManager.cancel()
+        vibrationThread.quitSafely()
+
+        sensorHandlerThread.quitSafely()
         super.onDestroyView()
         _binding = null
     }
