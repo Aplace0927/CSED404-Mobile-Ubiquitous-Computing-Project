@@ -1,4 +1,4 @@
-package com.csed433project.hapticfitness.ui.back_stretch
+package com.csed433project.hapticfitness.ui.squat
 
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -16,16 +16,15 @@ import android.os.VibratorManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.csed433project.hapticfitness.databinding.BackstretchBinding
+import com.csed433project.hapticfitness.databinding.SquatBinding
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
-class BackStretchFragment : Fragment() {
+class SquatFragment : Fragment() {
 
-    private var _binding: BackstretchBinding? = null
+    private var _binding: SquatBinding? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -84,10 +83,10 @@ class BackStretchFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val backStretchViewModel =
-            ViewModelProvider(this).get(BackStretchViewModel::class.java)
+        val squatViewModel =
+            ViewModelProvider(this).get(SquatViewModel::class.java)
 
-        _binding = BackstretchBinding.inflate(inflater, container, false)
+        _binding = SquatBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
         val orientationAngles = FloatArray(3)
