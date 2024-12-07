@@ -11,6 +11,9 @@
         android:label="@string/menu_home"
         tools:layout="@layout/fragment_home" >
         <action
+            android:id="@+id/action_nav_home_to_nav_rhythm_fitness"
+            app:destination="@id/nav_rhythm_fitness" />
+        <action
             android:id="@+id/action_nav_home_to_nav_back_stretch"
             app:destination="@id/nav_back_stretch" />
         <action
@@ -19,6 +22,12 @@
 
     </fragment>
 
+    <fragment
+        android:id="@+id/nav_rhythm_fitness"
+        android:name="com.csed433project.hapticfitness.ui.rhythm_fitness.RhythmFitnessFragment"
+        android:label="@string/menu_rhythm_fitness"
+        tools:layout="@layout/rhythm_fitness"
+        />
     <fragment
         android:id="@+id/nav_back_stretch"
         android:name="com.csed433project.hapticfitness.ui.back_stretch.BackStretchFragment"

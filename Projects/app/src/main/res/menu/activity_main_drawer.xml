@@ -3,11 +3,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:showIn="navigation_view">
 
-    <group android:checkableBehavior="single">
+    <group android:checkableBehavior="all">
         <item
             android:id="@+id/nav_home"
             android:icon="@drawable/ic_menu_camera"
             android:title="@string/menu_home" />
+        <item
+            android:id="@+id/nav_rhythm_fitness"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_rhythm_fitness" />
         <item
             android:id="@+id/nav_back_stretch"
             android:icon="@drawable/ic_menu_gallery"
@@ -15,7 +19,6 @@
         <item
             android:id="@+id/nav_squat"
             android:icon="@drawable/ic_menu_gallery"
-            android:title="@string/menu_squat"
-            />
+            android:title="@string/menu_squat" />
     </group>
 </menu>
