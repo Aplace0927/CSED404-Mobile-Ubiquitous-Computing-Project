@@ -16,7 +16,6 @@ import android.os.VibratorManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.csed433project.hapticfitness.databinding.BackstretchBinding
@@ -138,12 +137,19 @@ class BackStretchFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        /*
+            1. Release Binding (stop updating UI from ui thread)
+            2. Stop Vibrator thread (depends on sensor thread)
+            3. Stop Sensor thread
+            4. super.onDestroyView()
+         */
+
+        _binding = null
         vibratorManager.cancel()
         vibrationThread.quitSafely()
 
         sensorHandlerThread.quitSafely()
         super.onDestroyView()
-        _binding = null
     }
 
     inner class VibrationCaller: Runnable {
