@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="judgement_window">200</integer>
+    <integer name="slow">-50</integer>
+    <integer name="great_slow">-30</integer>
+    <integer name="perfect_slow">-10</integer>
+    <integer name="perfect_fast">10</integer>
+    <integer name="great_fast">30</integer>
+    <integer name="fast">50</integer>
+</resources>
