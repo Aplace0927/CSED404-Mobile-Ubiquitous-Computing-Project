@@ -1,6 +1,10 @@
 # Map Format
 
-`[Time (ms)] [action category]`
+```text
+[Note count]
+[Time (ms)] [action category]
+...
+```
 
 ## Action Categories
 

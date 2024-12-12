@@ -1,12 +1,15 @@
 package com.csed433project.hapticfitness.ui.rhythm_fitness
 
+import android.animation.ValueAnimator
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 
 import android.content.Context
+import android.graphics.Color
 
+import android.util.Log
 import android.os.Bundle
 import android.os.CombinedVibration
 import android.os.Handler
@@ -26,6 +29,7 @@ import java.nio.Buffer
 import kotlin.math.absoluteValue
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 class RhythmFitnessFragment : Fragment() {
 
@@ -58,6 +62,23 @@ class RhythmFitnessFragment : Fragment() {
     private lateinit var accelCirq: SensorCircularQueue
 
     private var timeStampStart: Long = 0
+
+    private var playing: PlayState = PlayState.STOPPED
+
+    enum class PlayState {
+        STOPPED, PAUSED, PLAYING
+    }
+
+    enum class JudgementGrade (val multiplier: Double){
+        MISS        (0.00),
+        SLOW        (0.50),
+        GREAT_SLOW  (0.75),
+        PERFECT_SLOW(1.00),
+        PERFECT     (1.01),
+        PERFECT_FAST(1.00),
+        GREAT_FAST  (0.75),
+        FAST        (0.50),
+    }
     /*
         D E S I G N
 
@@ -112,19 +133,10 @@ class RhythmFitnessFragment : Fragment() {
         vibrationWorker = Handler(vibrationThread.looper)
 
         judge = Judge()
-        judgementThread = Thread(judge)
-        judgementThread.start()
 
         vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
 
         vibrator = VibrationCaller()
-
-        /*
-        TODO:
-            add a button, set onClickListener()
-
-            onClickListener() of resetting timestamp
-         */
         
         gyroSensorEventListener = object: SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
@@ -145,6 +157,38 @@ class RhythmFitnessFragment : Fragment() {
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
         }
 
+        binding.stateTransitButton.setOnClickListener({
+            if (playing == PlayState.STOPPED)
+            {
+
+                playing = PlayState.PLAYING
+                binding.stateTransitButton.text = "PAUSE"
+
+                timeStampStart = System.currentTimeMillis()
+
+                judge.currentScore = 101.0000
+                judge.mapPlayingReader = BufferedReader(InputStreamReader(resources.assets.open("rhythm_map.dat")))
+                judge.noteCount = judge.mapPlayingReader.readLine().toInt()
+                judge.nextAction = judge.mapPlayingReader.readLine()
+
+                judgementThread = Thread(judge)
+                judgementThread.start()
+            }
+            else if (playing == PlayState.PAUSED)
+            {
+                Log.d("STATE", "Pause -> Play")
+                playing = PlayState.PLAYING
+                binding.stateTransitButton.text = "PAUSE"
+                timeStampStart = System.currentTimeMillis() - timeStampStart    // Elapsed time is stored when interrupted
+                judgementThread.run()
+            }
+            else if (playing == PlayState.PLAYING) {
+                Log.d("STATE", "Play -> Pause")
+                playing = PlayState.PAUSED
+                binding.stateTransitButton.text = "RESUME"
+                judgementThread.interrupt()
+            }
+        })
         // Rhythm fitness requires 1ms scale accuracy!
         sensorManager.registerListener(gyroSensorEventListener, gyroSensor, 1000, gyroSensorWorker)
         sensorManager.registerListener(accelSensorEventListener, accelSensor, 1000, accelSensorWorker)
@@ -155,12 +199,15 @@ class RhythmFitnessFragment : Fragment() {
     override fun onDestroyView() {
         /*
             1. Release Binding (stop updating UI from ui thread)
+            2. Stop Judgement thread
             2. Stop Vibrator thread (depends on sensor thread)
             3. Stop Sensor thread
             4. super.onDestroyView()
          */
 
         _binding = null
+
+        judgementThread.interrupt()
 
         vibratorManager.cancel()
         vibrationThread.quitSafely()
@@ -178,27 +225,77 @@ class RhythmFitnessFragment : Fragment() {
     }
 
     inner class Judge: Runnable {
-        val mapPlayingReader = BufferedReader(InputStreamReader(resources.assets.open("rhythm_map.dat")))
-        val actionJudge: Array<() -> Int> = arrayOf()  // To implement each action's judgement from gyroCirq and accelCirq
+        val actionJudge: Array<() -> JudgementGrade> = arrayOf(::returnRandomJudgement)  // To implement each action's judgement from gyroCirq and accelCirq
+        lateinit var mapPlayingReader: BufferedReader
+        var nextAction: String? = ""
+        var noteCount: Int = 0
+
+        var currentScore: Double = 101.0000
+
         override fun run() {
-            var nextAction: String? = mapPlayingReader.readLine()
             while (nextAction != null) {
-                val nextActionTime: Long = nextAction.split(" ")[0].toLong()
-                val nextActionCategory: Int = nextAction.split(" ")[1].toInt()
+                val nextActionTime: Long = nextAction?.split(" ")?.get(0)?.toLong() as Long
+                val nextActionCategory: Int = nextAction?.split(" ")?.get(1)?.toInt() as Int
+
+                if (Thread.currentThread().isInterrupted) {
+                    Log.d("intr", "%d %d".format(System.currentTimeMillis(), timeStampStart))
+                    timeStampStart = System.currentTimeMillis() - timeStampStart    // Store the elapsed time
+                    playing = PlayState.PAUSED
+                    binding.stateTransitButton.text = "RESUME"
+                    return
+                }
 
                 if (System.currentTimeMillis() - timeStampStart > nextActionTime + resources.getInteger(R.integer.judgement_window) / 2) {
                     judgement(nextActionCategory)
                     nextAction = mapPlayingReader.readLine()
                 }
             }
+            playing = PlayState.STOPPED
+            binding.stateTransitButton.text = "START"
+            return
         }
+
         fun judgement(category: Int) {
             val judgeResult = actionJudge[category]()
+            val (judgeResultText: String, judgeResultColor: Int) = returnAnyResult(judgeResult)
+            currentScore -= ((101.0000 - judgeResult.multiplier * 100.0000) / noteCount)
+
+            Log.d("Judge", "%s %x".format(judgeResultText, judgeResultColor))
             activity?.runOnUiThread(object: Runnable {
                 override fun run() {
-                    TODO("UI THREAD UPDATE WITH JUDGEMENT RESULT")
+                    Log.d("Update", "Update %f".format(currentScore))
+                    binding.judgementText.text = judgeResultText
+                    binding.judgementText.setTextColor(judgeResultColor)
+                    binding.scoreText.text = "%08.4f %%".format(currentScore)
                 }
             })
+        }
+
+        fun returnRandomJudgement(): JudgementGrade {
+            val resultGrade: List<JudgementGrade> = listOf(
+                JudgementGrade.MISS,
+                JudgementGrade.SLOW,
+                JudgementGrade.GREAT_SLOW,
+                JudgementGrade.PERFECT_SLOW,
+                JudgementGrade.PERFECT,
+                JudgementGrade.PERFECT_FAST,
+                JudgementGrade.GREAT_FAST,
+                JudgementGrade.FAST,
+            )
+            return resultGrade[Random.nextInt(resultGrade.size)]
+        }
+
+        fun returnAnyResult(judge: JudgementGrade): Pair<String, Int> {
+            when(judge) {
+                JudgementGrade.MISS -> return "MISS" to Color.rgb(0x00, 0x00, 0x00)
+                JudgementGrade.SLOW -> return "SLOW" to Color.rgb(0xFF, 0x00, 0x00)
+                JudgementGrade.GREAT_SLOW -> return "GREAT-SLOW" to Color.rgb(0xFF, 0x55, 0x55)
+                JudgementGrade.PERFECT_SLOW -> return "PERFECT-SLOW" to Color.rgb(0xFF, 0xAA, 0xAA)
+                JudgementGrade.PERFECT -> return "PERFECT" to Color.rgb(0x88, 0x88, 0x88)
+                JudgementGrade.PERFECT_FAST -> return "PERFECT-FAST" to Color.rgb(0xAA, 0xAA, 0xFF)
+                JudgementGrade.GREAT_FAST -> return "GREAT-FAST" to Color.rgb(0x55, 0x55, 0xFF)
+                JudgementGrade.FAST -> return "FAST" to Color.rgb(0x00, 0x00, 0xFF)
+            }
         }
     }
 
