@@ -1,10 +1,12 @@
 package com.csed433project.hapticfitness.ui.rhythm_fitness
 
+import android.animation.AnimatorInflater
 import android.animation.ValueAnimator
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.view.animation.AnimationUtils
 
 import android.content.Context
 import android.graphics.Color
@@ -245,6 +247,17 @@ class RhythmFitnessFragment : Fragment() {
                     return
                 }
 
+                if ((System.currentTimeMillis() - timeStampStart >= nextActionTime - resources.getInteger(R.integer.judgement_window) / 2) &&
+                    (System.currentTimeMillis() - timeStampStart < nextActionTime - resources.getInteger(R.integer.judgement_window) / 2 + 2)) {    // Tolerance 5 Frame
+                    activity?.runOnUiThread(object: Runnable {
+                        override fun run() {
+                            binding.judgementLineM.startAnimation(
+                                AnimationUtils.loadAnimation(context, R.anim.linear_move)
+                            )
+                        }
+                    })
+                }
+
                 if (System.currentTimeMillis() - timeStampStart > nextActionTime + resources.getInteger(R.integer.judgement_window) / 2) {
                     judgement(nextActionCategory)
                     nextAction = mapPlayingReader.readLine()
@@ -287,14 +300,14 @@ class RhythmFitnessFragment : Fragment() {
 
         fun returnAnyResult(judge: JudgementGrade): Pair<String, Int> {
             when(judge) {
-                JudgementGrade.MISS -> return "MISS" to Color.rgb(0x00, 0x00, 0x00)
-                JudgementGrade.SLOW -> return "SLOW" to Color.rgb(0xFF, 0x00, 0x00)
-                JudgementGrade.GREAT_SLOW -> return "GREAT-SLOW" to Color.rgb(0xFF, 0x55, 0x55)
-                JudgementGrade.PERFECT_SLOW -> return "PERFECT-SLOW" to Color.rgb(0xFF, 0xAA, 0xAA)
-                JudgementGrade.PERFECT -> return "PERFECT" to Color.rgb(0x88, 0x88, 0x88)
-                JudgementGrade.PERFECT_FAST -> return "PERFECT-FAST" to Color.rgb(0xAA, 0xAA, 0xFF)
-                JudgementGrade.GREAT_FAST -> return "GREAT-FAST" to Color.rgb(0x55, 0x55, 0xFF)
-                JudgementGrade.FAST -> return "FAST" to Color.rgb(0x00, 0x00, 0xFF)
+                JudgementGrade.MISS -> return "MISS" to context?.getColor(R.color.judge_miss) as Int
+                JudgementGrade.SLOW -> return "SLOW" to context?.getColor(R.color.judge_slow) as Int
+                JudgementGrade.GREAT_SLOW -> return "GREAT-SLOW" to context?.getColor(R.color.judge_great_slow) as Int
+                JudgementGrade.PERFECT_SLOW -> return "PERFECT-SLOW" to context?.getColor(R.color.judge_perfect_slow) as Int
+                JudgementGrade.PERFECT -> return "PERFECT" to context?.getColor(R.color.judge_perfect) as Int
+                JudgementGrade.PERFECT_FAST -> return "PERFECT-FAST" to context?.getColor(R.color.judge_perfect_fast) as Int
+                JudgementGrade.GREAT_FAST -> return "GREAT-FAST" to context?.getColor(R.color.judge_great_fast) as Int
+                JudgementGrade.FAST -> return "FAST" to context?.getColor(R.color.judge_fast) as Int
             }
         }
     }
