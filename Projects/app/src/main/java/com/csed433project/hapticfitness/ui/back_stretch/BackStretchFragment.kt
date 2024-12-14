@@ -40,7 +40,7 @@ class BackStretchFragment : Fragment() {
     private lateinit var rotVctSensorEventListener: SensorEventListener
     private lateinit var sensorHandlerThread: HandlerThread
     private lateinit var sensorWorker: Handler
-    
+
     private val rotMat: FloatArray = floatArrayOf(
         1.0F, 0.0F, 0.0F, 0.0F,
         0.0F, 1.0F, 0.0F, 0.0F,
@@ -48,7 +48,7 @@ class BackStretchFragment : Fragment() {
         0.0F, 0.0F, 0.0F, 1.0F,
     )
 
-    
+
     fun actionHandlerExerciseZone (angle: Int): CombinedVibration? {
         /*
             Inverse proportional: (angle) 45-120deg -> (intensity) 1-255.
@@ -75,7 +75,7 @@ class BackStretchFragment : Fragment() {
         }
         return null
     }
-    
+
     private val actionHandlerArray: Array<(Int) -> CombinedVibration?> = arrayOf(::actionHandlerExerciseZone, ::actionHandlerDangerZone)
 
     override fun onCreateView(
@@ -83,7 +83,7 @@ class BackStretchFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val backStretchViewModel =
+        val sideStretchViewModel =
             ViewModelProvider(this).get(BackStretchViewModel::class.java)
 
         _binding = BackstretchBinding.inflate(inflater, container, false)
@@ -106,7 +106,7 @@ class BackStretchFragment : Fragment() {
         vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
 
         vibrator = VibrationCaller()
-        
+
         rotVctSensorEventListener = object: SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
                 if (event?.sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {

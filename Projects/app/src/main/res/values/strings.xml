@@ -10,6 +10,7 @@
     <string name="menu_home">Home</string>
     <string name="menu_back_stretch">Back Stretch</string>
     <string name="menu_squat">Squat</string>
+    <string name="menu_side_stretch">Side Stretch</string>
     <string name="menu_rhythm_fitness">Rhythm Fitness</string>
     <string name="menu_slideshow">Slideshow</string>
 </resources>

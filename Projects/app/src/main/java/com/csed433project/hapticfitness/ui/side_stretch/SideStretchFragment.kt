@@ -1,4 +1,4 @@
-package com.csed433project.hapticfitness.ui.squat
+package com.csed433project.hapticfitness.ui.side_stretch
 
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -18,13 +18,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.csed433project.hapticfitness.databinding.SquatBinding
+import com.csed433project.hapticfitness.databinding.SidestretchBinding
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
-class SquatFragment : Fragment() {
+class SideStretchFragment : Fragment() {
 
-    private var _binding: SquatBinding? = null
+    private var _binding: SidestretchBinding? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -50,10 +50,13 @@ class SquatFragment : Fragment() {
 
     
     fun actionHandlerExerciseZone (angle: Int): CombinedVibration? {
-        if (-30 <= angle && angle <= 30) {
+        /*
+            Inverse proportional: (angle) 45-120deg -> (intensity) 1-255.
+         */
+        if (20 < angle.absoluteValue && angle.absoluteValue <= 50) {
             val interval: Long = 100
             val strength: Int = 1.coerceAtLeast(
-                255.coerceAtMost((254 * (1 - angle.absoluteValue / 30).toDouble().roundToInt()))
+                255.coerceAtMost(((254 * (angle - 20) / (50 - 20)).toDouble().roundToInt()))
             )
             return CombinedVibration.createParallel(VibrationEffect.createOneShot(interval, strength))
         }
@@ -61,9 +64,13 @@ class SquatFragment : Fragment() {
     }
 
     fun actionHandlerDangerZone (angle: Int): CombinedVibration? {
-        if (angle > 30) {
+        /*
+            If angle > 120 -> Dangerous signal.
+         */
+
+        if (angle.absoluteValue > 50) {
             val interval: Long = 30
-            val strength: Int = 10
+            val strength: Int = 255
             return CombinedVibration.createParallel(VibrationEffect.createOneShot(interval, strength))
         }
         return null
@@ -76,10 +83,10 @@ class SquatFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val squatViewModel =
-            ViewModelProvider(this).get(SquatViewModel::class.java)
+        val sideStretchViewModel =
+            ViewModelProvider(this).get(SideStretchViewModel::class.java)
 
-        _binding = SquatBinding.inflate(inflater, container, false)
+        _binding = SidestretchBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
         val orientationAngles = FloatArray(3)
