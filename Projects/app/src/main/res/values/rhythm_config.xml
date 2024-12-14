@@ -2,7 +2,7 @@
 <resources>
     <integer name="animation_window">1000</integer>
     <integer name="judgement_window">240</integer>
-    <integer name="judgement_threshold">5</integer>
+    <integer name="judgement_threshold">7</integer>
     <integer name="judgement_offset">-45</integer>
 
     <integer name="miss_slow_threshold">-120</integer>

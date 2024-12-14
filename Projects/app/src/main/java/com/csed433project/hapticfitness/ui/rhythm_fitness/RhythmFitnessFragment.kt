@@ -7,6 +7,7 @@ import android.hardware.SensorManager
 import android.view.animation.AnimationUtils
 
 import android.content.Context
+import android.media.MediaPlayer
 
 import android.util.Log
 import android.os.Bundle
@@ -50,6 +51,8 @@ class RhythmFitnessFragment : Fragment() {
     private lateinit var judgementThread: Thread
 
     private lateinit var accelMovAvg: SensorMovAvg
+
+    private lateinit var mediaPlayer: MediaPlayer
 
     private var timeStampStart: Long = 0
 
@@ -111,9 +114,7 @@ class RhythmFitnessFragment : Fragment() {
         vibrationThread.start()
         vibrationWorker = Handler(vibrationThread.looper)
 
-        vibrationThread = HandlerThread("Vibration Thread")
-        vibrationThread.start()
-        vibrationWorker = Handler(vibrationThread.looper)
+        mediaPlayer = MediaPlayer.create(context, R.raw.remix10)
 
         judge = Judge()
 
@@ -149,6 +150,7 @@ class RhythmFitnessFragment : Fragment() {
                 binding.scoreText.text = "%08.4f %%".format(judge.currentScore)
 
                 judgementThread = Thread(judge)
+                mediaPlayer.start()
                 judgementThread.start()
             }
             else if (playing == PlayState.PAUSED)
@@ -158,12 +160,14 @@ class RhythmFitnessFragment : Fragment() {
                 binding.stateTransitButton.text = "PAUSE"
                 timeStampStart = System.currentTimeMillis() - timeStampStart    // Elapsed time is stored when interrupted
                 judgementThread.run()
+                mediaPlayer.start()
             }
             else if (playing == PlayState.PLAYING) {
                 Log.d("STATE", "Play -> Pause")
                 playing = PlayState.PAUSED
                 binding.stateTransitButton.text = "RESUME"
                 judgementThread.interrupt()
+                mediaPlayer.pause()
             }
         })
 
@@ -187,10 +191,8 @@ class RhythmFitnessFragment : Fragment() {
         }
 
         _binding = null
-
         vibratorManager.cancel()
         vibrationThread.quitSafely()
-
         accelSensorHandlerThread.quitSafely()
         super.onDestroyView()
     }
@@ -225,6 +227,7 @@ class RhythmFitnessFragment : Fragment() {
         var currentScore: Double = 101.0000
         val rhythmThreshold = resources.getInteger(R.integer.judgement_threshold).toFloat()
 
+
         override fun run() {
             while (nextAction != null) {
                 val nextActionTime: Long = nextAction?.split(" ")?.get(0)?.toLong() as Long
@@ -249,6 +252,18 @@ class RhythmFitnessFragment : Fragment() {
                 }
 
                 val currentElapsed = System.currentTimeMillis() - timeStampStart
+
+                /*
+                    Debugging mode for adding charts.
+                    Un-comment the LinearLayout containing 6 Buttons to enable this feature.
+
+                binding.buttonPush.setOnClickListener({Log.d("Chart", "Push %d".format(currentElapsed))})
+                binding.buttonPull.setOnClickListener({Log.d("Chart", "Pull %d".format(currentElapsed))})
+                binding.buttonRaise.setOnClickListener({Log.d("Chart", "Raise %d".format(currentElapsed))})
+                binding.buttonHit.setOnClickListener({Log.d("Chart", "Hit %d".format(currentElapsed))})
+                binding.buttonLeft.setOnClickListener({Log.d("Chart", "Left %d".format(currentElapsed))})
+                binding.buttonRight.setOnClickListener({Log.d("Chart", "Right %d".format(currentElapsed))})
+                */
 
                 if (accelMovAvg.movX > rhythmThreshold && nextActionCategory == 0 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
                     Log.d("Push", "Push [%d]-[%d]".format(nextActionTime,  currentElapsed))
@@ -288,6 +303,8 @@ class RhythmFitnessFragment : Fragment() {
             }
             playing = PlayState.STOPPED
             binding.stateTransitButton.text = "START"
+            mediaPlayer.stop()
+            mediaPlayer.release()
             return
         }
 

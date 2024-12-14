@@ -29,6 +29,56 @@
             android:text="Rhythm Haptics"
             android:textAlignment="center"
             android:textSize="24sp" />
+        <!--
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            tools:visibility="gone">
+
+            <Button
+                android:id="@+id/button_push"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="←" />
+
+            <Button
+                android:id="@+id/button_pull"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="→" />
+
+            <Button
+                android:id="@+id/button_raise"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="↑" />
+
+            <Button
+                android:id="@+id/button_hit"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="↓" />
+
+            <Button
+                android:id="@+id/button_left"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⨀" />
+
+            <Button
+                android:id="@+id/button_right"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⨂" />
+        </LinearLayout>
+        -->
 
         <LinearLayout
             android:layout_width="match_parent"
