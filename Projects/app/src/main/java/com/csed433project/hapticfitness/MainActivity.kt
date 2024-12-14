@@ -1,7 +1,11 @@
 package com.csed433project.hapticfitness
 
+import android.content.Context
 import android.os.Bundle
+import android.util.AttributeSet
 import android.view.Menu
+import android.view.View
+import android.widget.Button
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.navigation.NavigationView
 import androidx.navigation.findNavController
@@ -17,6 +21,10 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+
+    private lateinit var backStretchButton: Button
+    private lateinit var sideStretchButton: Button
+    private lateinit var squatButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +43,14 @@ class MainActivity : AppCompatActivity() {
         val navView: NavigationView = binding.navView
         val navController = findNavController(R.id.nav_host_fragment_content_main)
 
+        backStretchButton = findViewById(R.id.backStretchButton)
+        sideStretchButton = findViewById(R.id.sideStretchButton)
+        squatButton = findViewById(R.id.squatButton)
+
+        backStretchButton.setOnClickListener { navController.navigate(R.id.action_nav_home_to_nav_back_stretch) }
+        sideStretchButton.setOnClickListener { navController.navigate(R.id.action_nav_home_to_nav_side_stretch) }
+        squatButton.setOnClickListener { navController.navigate(R.id.action_nav_home_to_nav_squat) }
+
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         appBarConfiguration = AppBarConfiguration(
@@ -47,12 +63,6 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.main, menu)
-        return true
     }
 
     override fun onSupportNavigateUp(): Boolean {

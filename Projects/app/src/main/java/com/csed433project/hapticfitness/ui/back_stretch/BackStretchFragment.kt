@@ -48,7 +48,6 @@ class BackStretchFragment : Fragment() {
         0.0F, 0.0F, 0.0F, 1.0F,
     )
 
-
     fun actionHandlerExerciseZone (angle: Int): CombinedVibration? {
         /*
             Inverse proportional: (angle) 45-120deg -> (intensity) 1-255.
@@ -83,8 +82,6 @@ class BackStretchFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val sideStretchViewModel =
-            ViewModelProvider(this).get(BackStretchViewModel::class.java)
 
         _binding = BackstretchBinding.inflate(inflater, container, false)
         val root: View = binding.root
