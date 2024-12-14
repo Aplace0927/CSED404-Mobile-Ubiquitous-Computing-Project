@@ -40,21 +40,16 @@ class RhythmFitnessFragment : Fragment() {
     private lateinit var vibrationWorker: Handler
 
     private lateinit var sensorManager: SensorManager
-    private lateinit var gyroSensor: Sensor
-    private lateinit var gyroSensorEventListener: SensorEventListener
+
     private lateinit var accelSensor: Sensor
     private lateinit var accelSensorEventListener: SensorEventListener
-
-    private lateinit var gyroSensorHandlerThread: HandlerThread
-    private lateinit var gyroSensorWorker: Handler
     private lateinit var accelSensorHandlerThread: HandlerThread
     private lateinit var accelSensorWorker: Handler
 
     private lateinit var judge: Judge
     private lateinit var judgementThread: Thread
 
-    private lateinit var gyroCirq: SensorCircularQueue
-    private lateinit var accelCirq: SensorCircularQueue
+    private lateinit var accelMovAvg: SensorMovAvg
 
     private var timeStampStart: Long = 0
 
@@ -98,28 +93,19 @@ class RhythmFitnessFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val backStretchViewModel =
+        val rhythmFitnessViewModel =
             ViewModelProvider(this).get(RhythmFitnessViewModel::class.java)
 
         _binding = RhythmFitnessBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val orientationAngles = FloatArray(3)
-        var angle: Int = 0
-
         sensorManager = context?.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) as Sensor
         accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION) as Sensor
-
-        gyroSensorHandlerThread = HandlerThread("Gyroscope Event Handler")
-        gyroSensorHandlerThread.start()
-        gyroSensorWorker = Handler(gyroSensorHandlerThread.looper)
-        gyroCirq = SensorCircularQueue(resources.getInteger(R.integer.judgement_window) / 10)
 
         accelSensorHandlerThread = HandlerThread("Accelerometer Event Handler")
         accelSensorHandlerThread.start()
         accelSensorWorker = Handler(accelSensorHandlerThread.looper)
-        accelCirq = SensorCircularQueue(resources.getInteger(R.integer.judgement_window) / 10)
+        accelMovAvg = SensorMovAvg()
 
         vibrationThread = HandlerThread("Vibration Thread")
         vibrationThread.start()
@@ -133,20 +119,11 @@ class RhythmFitnessFragment : Fragment() {
 
         vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
         vibrator = VibrationCaller()
-        
-        gyroSensorEventListener = object: SensorEventListener {
-            override fun onSensorChanged(event: SensorEvent?) {
-                if (event?.sensor?.type == Sensor.TYPE_GYROSCOPE) {
-                    gyroCirq.scqPush(event.values[0], event.values[1], event.values[2])
-                }
-            }
-            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-        }
 
         accelSensorEventListener = object: SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
                 if (event?.sensor?.type == Sensor.TYPE_LINEAR_ACCELERATION) {
-                    accelCirq.scqPush(event.values[0], event.values[1], event.values[2])
+                    accelMovAvg.movAvgUpdate(event.values[0], event.values[1], event.values[2])
                 }
             }
 
@@ -189,8 +166,7 @@ class RhythmFitnessFragment : Fragment() {
                 judgementThread.interrupt()
             }
         })
-        // Rhythm fitness requires 10ms scale accuracy!
-        sensorManager.registerListener(gyroSensorEventListener, gyroSensor, 10000, gyroSensorWorker)
+
         sensorManager.registerListener(accelSensorEventListener, accelSensor, 10000, accelSensorWorker)
 
         return root
@@ -216,7 +192,6 @@ class RhythmFitnessFragment : Fragment() {
         vibrationThread.quitSafely()
 
         accelSensorHandlerThread.quitSafely()
-        gyroSensorHandlerThread.quitSafely()
         super.onDestroyView()
     }
 
@@ -273,41 +248,41 @@ class RhythmFitnessFragment : Fragment() {
                     })
                 }
 
-                val current_elapsed = System.currentTimeMillis() - timeStampStart
+                val currentElapsed = System.currentTimeMillis() - timeStampStart
 
-                if (accelCirq.movX > rhythmThreshold && nextActionCategory == 0 && (current_elapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
-                    Log.d("Push", "Push [%d]-[%d]".format(nextActionTime,  current_elapsed))
-                    judgement(nextActionTime - current_elapsed)
+                if (accelMovAvg.movX > rhythmThreshold && nextActionCategory == 0 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
+                    Log.d("Push", "Push [%d]-[%d]".format(nextActionTime,  currentElapsed))
+                    judgement(nextActionTime - currentElapsed)
                     nextAction = mapPlayingReader.readLine()
                 }
-                else if (accelCirq.movX < -rhythmThreshold && nextActionCategory == 1 && (current_elapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
-                    Log.d("Pull", "Pull [%d]-[%d]".format(nextActionTime,  current_elapsed))
-                    judgement(nextActionTime - current_elapsed)
+                else if (accelMovAvg.movX < -rhythmThreshold && nextActionCategory == 1 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
+                    Log.d("Pull", "Pull [%d]-[%d]".format(nextActionTime,  currentElapsed))
+                    judgement(nextActionTime - currentElapsed)
                     nextAction = mapPlayingReader.readLine()
                 }
-                else if (accelCirq.movY > rhythmThreshold && nextActionCategory == 2 && (current_elapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
-                    Log.d("Raise", "Raise [%d]-[%d]".format(nextActionTime, current_elapsed))
-                    judgement(nextActionTime - current_elapsed)
+                else if (accelMovAvg.movY > rhythmThreshold && nextActionCategory == 2 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
+                    Log.d("Raise", "Raise [%d]-[%d]".format(nextActionTime, currentElapsed))
+                    judgement(nextActionTime - currentElapsed)
                     nextAction = mapPlayingReader.readLine()
                 }
-                else if (accelCirq.movY < -rhythmThreshold && nextActionCategory == 3 && (current_elapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
-                    Log.d("Hit", "Hit [%d]-[%d]".format(nextActionTime, current_elapsed))
-                    judgement(nextActionTime - current_elapsed)
+                else if (accelMovAvg.movY < -rhythmThreshold && nextActionCategory == 3 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
+                    Log.d("Hit", "Hit [%d]-[%d]".format(nextActionTime, currentElapsed))
+                    judgement(nextActionTime - currentElapsed)
                     nextAction = mapPlayingReader.readLine()
                 }
-                else if (accelCirq.movZ > rhythmThreshold && nextActionCategory == 4 && (current_elapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
-                    Log.d("Left", "Left [%d]-[%d]".format(nextActionTime,  current_elapsed))
-                    judgement(nextActionTime - current_elapsed)
+                else if (accelMovAvg.movZ > rhythmThreshold && nextActionCategory == 4 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
+                    Log.d("Left", "Left [%d]-[%d]".format(nextActionTime,  currentElapsed))
+                    judgement(nextActionTime - currentElapsed)
                     nextAction = mapPlayingReader.readLine()
                 }
-                else if (accelCirq.movZ < -rhythmThreshold && nextActionCategory == 5 && (current_elapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
-                    Log.d("Right", "Right [%d]-[%d]".format(nextActionTime,  current_elapsed))
-                    judgement(nextActionTime - current_elapsed)
+                else if (accelMovAvg.movZ < -rhythmThreshold && nextActionCategory == 5 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
+                    Log.d("Right", "Right [%d]-[%d]".format(nextActionTime,  currentElapsed))
+                    judgement(nextActionTime - currentElapsed)
                     nextAction = mapPlayingReader.readLine()
                 }
-                else if (current_elapsed - nextActionTime > resources.getInteger(R.integer.judgement_window) / 2) {
-                    Log.d("MISS", "[%d]-[%d]".format(nextActionTime,  current_elapsed))
-                    judgement(nextActionTime - current_elapsed)
+                else if (currentElapsed - nextActionTime > resources.getInteger(R.integer.judgement_window) / 2) {
+                    Log.d("MISS", "[%d]-[%d]".format(nextActionTime,  currentElapsed))
+                    judgement(nextActionTime - currentElapsed)
                     nextAction = mapPlayingReader.readLine()
                 }
             }
@@ -367,16 +342,12 @@ class RhythmFitnessFragment : Fragment() {
         }
     }
 
-    inner class SensorCircularQueue (windowSize: Int) {
-        var sensorArray : Array<FloatArray> = Array(windowSize) {floatArrayOf(0.0F, 0.0F, 0.0F)}
-        var pointer: Int = 0
-        val capacity = windowSize
-
+    inner class SensorMovAvg () {
         var movX: Float = 0.0F
         var movY: Float = 0.0F
         var movZ: Float = 0.0F
 
-        fun scqPush(x: Float, y: Float, z: Float)  {
+        fun movAvgUpdate(x: Float, y: Float, z: Float)  {
             movX = movX * 0.3F + x * 0.7F
             movY = movY * 0.3F + y * 0.7F
             movZ = movZ * 0.3F + z * 0.7F
