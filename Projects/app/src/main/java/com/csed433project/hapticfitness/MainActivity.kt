@@ -1,10 +1,6 @@
 package com.csed433project.hapticfitness
 
-import android.content.Context
 import android.os.Bundle
-import android.util.AttributeSet
-import android.view.Menu
-import android.view.View
 import android.widget.Button
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.navigation.NavigationView

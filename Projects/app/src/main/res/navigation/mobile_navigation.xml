@@ -12,16 +12,20 @@
         tools:layout="@layout/fragment_home" >
         <action
             android:id="@+id/action_nav_home_to_nav_rhythm_fitness"
-            app:destination="@id/nav_rhythm_fitness" />
+            app:destination="@id/nav_rhythm_fitness"
+            app:popUpTo="@id/nav_home" />
         <action
             android:id="@+id/action_nav_home_to_nav_back_stretch"
-            app:destination="@id/nav_back_stretch" />
+            app:destination="@id/nav_back_stretch"
+            app:popUpTo="@id/nav_home" />
         <action
             android:id="@+id/action_nav_home_to_nav_squat"
-            app:destination="@id/nav_squat" />
+            app:destination="@id/nav_squat"
+            app:popUpTo="@id/nav_home" />
         <action
             android:id="@+id/action_nav_home_to_nav_side_stretch"
-            app:destination="@id/nav_side_stretch" />
+            app:destination="@id/nav_side_stretch"
+            app:popUpTo="@id/nav_home" />
 
     </fragment>
 

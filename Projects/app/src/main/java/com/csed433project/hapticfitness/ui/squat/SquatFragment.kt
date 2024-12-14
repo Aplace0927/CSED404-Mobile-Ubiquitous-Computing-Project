@@ -76,8 +76,6 @@ class SquatFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val squatViewModel =
-            ViewModelProvider(this).get(SquatViewModel::class.java)
 
         _binding = SquatBinding.inflate(inflater, container, false)
         val root: View = binding.root

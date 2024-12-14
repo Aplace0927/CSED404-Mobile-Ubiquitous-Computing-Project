@@ -50,9 +50,6 @@ class SideStretchFragment : Fragment() {
 
     
     fun actionHandlerExerciseZone (angle: Int): CombinedVibration? {
-        /*
-            Inverse proportional: (angle) 45-120deg -> (intensity) 1-255.
-         */
         if (20 < angle.absoluteValue && angle.absoluteValue <= 50) {
             val interval: Long = 100
             val strength: Int = 1.coerceAtLeast(
@@ -64,10 +61,6 @@ class SideStretchFragment : Fragment() {
     }
 
     fun actionHandlerDangerZone (angle: Int): CombinedVibration? {
-        /*
-            If angle > 120 -> Dangerous signal.
-         */
-
         if (angle.absoluteValue > 50) {
             val interval: Long = 30
             val strength: Int = 255
@@ -83,8 +76,6 @@ class SideStretchFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val sideStretchViewModel =
-            ViewModelProvider(this).get(SideStretchViewModel::class.java)
 
         _binding = SidestretchBinding.inflate(inflater, container, false)
         val root: View = binding.root
