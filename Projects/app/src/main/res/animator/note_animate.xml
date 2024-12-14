@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:ordering="together">
+    <objectAnimator
+        android:duration="@integer/judgement_window"
+        android:interpolator="@android:anim/linear_interpolator"
+        android:repeatCount="0">
+        <propertyValuesHolder
+            android:propertyName="progress"
+            android:valueFrom="100"
+            android:valueTo="-100"
+            android:valueType="intType"/>
+
+    </objectAnimator>
+</set>

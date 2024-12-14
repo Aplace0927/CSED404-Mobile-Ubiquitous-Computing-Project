@@ -115,9 +115,13 @@ class BackStretchFragment : Fragment() {
 
                     angle = Math.toDegrees(orientationAngles[2].toDouble()).roundToInt()
 
-                    binding.valueText.text = "%03d".format(angle.absoluteValue)
-                    binding.progressBar.scaleY = if (angle >= 0) -1.0F else 1.0F
-                    binding.progressBar.setProgress(angle.absoluteValue, true)
+                    activity?.runOnUiThread(object : Runnable {
+                        override fun run() {
+                            binding.valueText.text = "%03d".format(angle.absoluteValue)
+                            binding.progressBar.scaleY = if (angle >= 0) -1.0F else 1.0F
+                            binding.progressBar.setProgress(angle.absoluteValue, true)
+                        }
+                    })
 
                     actionHandlerArray.forEach { fn ->
                         val vibEff = fn(angle.absoluteValue)
@@ -143,12 +147,13 @@ class BackStretchFragment : Fragment() {
             3. Stop Sensor thread
             4. super.onDestroyView()
          */
-
-        _binding = null
         vibratorManager.cancel()
         vibrationThread.quitSafely()
 
         sensorHandlerThread.quitSafely()
+
+        _binding = null
+
         super.onDestroyView()
     }
 

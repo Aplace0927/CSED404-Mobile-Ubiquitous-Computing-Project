@@ -1,10 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <integer name="judgement_window">200</integer>
-    <integer name="slow">-50</integer>
-    <integer name="great_slow">-30</integer>
-    <integer name="perfect_slow">-10</integer>
-    <integer name="perfect_fast">10</integer>
-    <integer name="great_fast">30</integer>
-    <integer name="fast">50</integer>
+    <integer name="animation_window">1000</integer>
+    <integer name="judgement_window">240</integer>
+    <integer name="judgement_threshold">7</integer>
+    <integer name="judgement_offset">-45</integer>
+
+    <integer name="miss_slow_threshold">-120</integer>
+    <integer name="slow_slow_great_threshold">-90</integer>
+    <integer name="slow_great_slow_perfect_threshold">-60</integer>
+    <integer name="slow_perfect_perfect_threshold">-30</integer>
+    <integer name="perfect_fast_perfect_threshold">30</integer>
+    <integer name="fast_perfect_fast_great_threshold">60</integer>
+    <integer name="fast_great_fast_threshold">90</integer>
+    <integer name="fast_miss_threshold">120</integer>
+
+    <integer name="miss_vib_strength">20</integer>
+    <integer name="slow_fast_vib_strength">70</integer>
+    <integer name="great_vib_strength">120</integer>
+    <integer name="perfect_vib_strength">180</integer>
+    <integer name="justice_vib_strength">255</integer>
 </resources>

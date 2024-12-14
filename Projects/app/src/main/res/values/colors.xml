@@ -7,4 +7,13 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="judge_miss">#FF000000</color>
+    <color name="judge_slow">#FFFF5555</color>
+    <color name="judge_great_slow">#FFFF8888</color>
+    <color name="judge_perfect_slow">#FFFFCCCC</color>
+    <color name="judge_perfect">#FFCCFFCC</color>
+    <color name="judge_perfect_fast">#FFCCCCFF</color>
+    <color name="judge_great_fast">#FF8888FF</color>
+    <color name="judge_fast">#FF5555FF</color>
 </resources>
