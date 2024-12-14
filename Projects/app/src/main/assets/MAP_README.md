@@ -8,7 +8,14 @@
 
 ## Action Categories
 
-1. Some action
-2. Another action
-3. ...
-4. 
+| Action ID | Action Explain                            |
+|-----------|-------------------------------------------|
+| `0`       | Push                                      |
+| `1`       | Pull                                      |
+| `2`       | Raise Up                                  |
+| `3`       | Punch Down                                |
+| `4`       | Bent In (Left for Right-handed hold)      |
+| `5`       | Release Out (Right for Right-handed hold) |
+
+
+

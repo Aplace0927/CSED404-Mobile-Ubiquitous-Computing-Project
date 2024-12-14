@@ -55,7 +55,7 @@
                 android:gravity="center"
                 android:textAlignment="center"
                 android:textSize="48dp"
-                android:text="───"
+                android:text="━━━━━"
                 android:translationY="-500dp"/>
 
             <TextView

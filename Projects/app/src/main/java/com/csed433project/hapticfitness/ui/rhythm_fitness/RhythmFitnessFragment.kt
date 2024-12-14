@@ -17,6 +17,7 @@ import android.os.CombinedVibration
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.VibratorManager
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -123,12 +124,12 @@ class RhythmFitnessFragment : Fragment() {
         gyroSensorHandlerThread = HandlerThread("Gyroscope Event Handler")
         gyroSensorHandlerThread.start()
         gyroSensorWorker = Handler(gyroSensorHandlerThread.looper)
-        gyroCirq = SensorCircularQueue(resources.getInteger(R.integer.judgement_window))
+        gyroCirq = SensorCircularQueue(resources.getInteger(R.integer.judgement_window) / 10)
 
         accelSensorHandlerThread = HandlerThread("Accelerometer Event Handler")
         accelSensorHandlerThread.start()
         accelSensorWorker = Handler(accelSensorHandlerThread.looper)
-        accelCirq = SensorCircularQueue(resources.getInteger(R.integer.judgement_window))
+        accelCirq = SensorCircularQueue(resources.getInteger(R.integer.judgement_window) / 10)
 
         vibrationThread = HandlerThread("Vibration Thread")
         vibrationThread.start()
@@ -172,6 +173,7 @@ class RhythmFitnessFragment : Fragment() {
                 judge.mapPlayingReader = BufferedReader(InputStreamReader(resources.assets.open("rhythm_map.dat")))
                 judge.noteCount = judge.mapPlayingReader.readLine().toInt()
                 judge.nextAction = judge.mapPlayingReader.readLine()
+                binding.judgementLineR.text = judgementSymbol((judge.nextAction as String).split(" ")[1].toInt())
 
                 judgementThread = Thread(judge)
                 judgementThread.start()
@@ -191,9 +193,9 @@ class RhythmFitnessFragment : Fragment() {
                 judgementThread.interrupt()
             }
         })
-        // Rhythm fitness requires 1ms scale accuracy!
-        sensorManager.registerListener(gyroSensorEventListener, gyroSensor, 1000, gyroSensorWorker)
-        sensorManager.registerListener(accelSensorEventListener, accelSensor, 1000, accelSensorWorker)
+        // Rhythm fitness requires 10ms scale accuracy!
+        sensorManager.registerListener(gyroSensorEventListener, gyroSensor, 10000, gyroSensorWorker)
+        sensorManager.registerListener(accelSensorEventListener, accelSensor, 10000, accelSensorWorker)
 
         return root
     }
@@ -207,9 +209,12 @@ class RhythmFitnessFragment : Fragment() {
             4. super.onDestroyView()
          */
 
-        _binding = null
+        if (playing == PlayState.PAUSED || playing == PlayState.PLAYING)
+        {
+            judgementThread.interrupt()
+        }
 
-        judgementThread.interrupt()
+        _binding = null
 
         vibratorManager.cancel()
         vibrationThread.quitSafely()
@@ -227,7 +232,15 @@ class RhythmFitnessFragment : Fragment() {
     }
 
     inner class Judge: Runnable {
-        val actionJudge: Array<() -> JudgementGrade> = arrayOf(::returnRandomJudgement)  // To implement each action's judgement from gyroCirq and accelCirq
+        val actionJudge: Array<() -> JudgementGrade> = arrayOf(
+            ::judgementPush,
+            ::judgementPull,
+            ::judgementRaise,
+            ::judgementHit,
+            ::judgementLeftBend,
+            ::judgementRightBend
+        )  // To implement each action's judgement from gyroCirq and accelCirq
+
         lateinit var mapPlayingReader: BufferedReader
         var nextAction: String? = ""
         var noteCount: Int = 0
@@ -240,7 +253,6 @@ class RhythmFitnessFragment : Fragment() {
                 val nextActionCategory: Int = nextAction?.split(" ")?.get(1)?.toInt() as Int
 
                 if (Thread.currentThread().isInterrupted) {
-                    Log.d("intr", "%d %d".format(System.currentTimeMillis(), timeStampStart))
                     timeStampStart = System.currentTimeMillis() - timeStampStart    // Store the elapsed time
                     playing = PlayState.PAUSED
                     binding.stateTransitButton.text = "RESUME"
@@ -249,6 +261,7 @@ class RhythmFitnessFragment : Fragment() {
 
                 if ((System.currentTimeMillis() - timeStampStart >= nextActionTime - resources.getInteger(R.integer.judgement_window) / 2) &&
                     (System.currentTimeMillis() - timeStampStart < nextActionTime - resources.getInteger(R.integer.judgement_window) / 2 + 2)) {    // Tolerance 5 Frame
+                    accelCirq.scqClear()
                     activity?.runOnUiThread(object: Runnable {
                         override fun run() {
                             binding.judgementLineM.startAnimation(
@@ -261,6 +274,14 @@ class RhythmFitnessFragment : Fragment() {
                 if (System.currentTimeMillis() - timeStampStart > nextActionTime + resources.getInteger(R.integer.judgement_window) / 2) {
                     judgement(nextActionCategory)
                     nextAction = mapPlayingReader.readLine()
+                    activity?.runOnUiThread(object: Runnable {
+                        override fun run() {
+                            if (nextAction != null)
+                            {
+                                binding.judgementLineR.text = judgementSymbol(nextAction?.split(" ")?.get(1)?.toInt() as Int)
+                            }
+                        }
+                    })
                 }
             }
             playing = PlayState.STOPPED
@@ -270,13 +291,12 @@ class RhythmFitnessFragment : Fragment() {
 
         fun judgement(category: Int) {
             val judgeResult = actionJudge[category]()
+
             val (judgeResultText: String, judgeResultColor: Int) = returnAnyResult(judgeResult)
             currentScore -= ((101.0000 - judgeResult.multiplier * 100.0000) / noteCount)
 
-            Log.d("Judge", "%s %x".format(judgeResultText, judgeResultColor))
             activity?.runOnUiThread(object: Runnable {
                 override fun run() {
-                    Log.d("Update", "Update %f".format(currentScore))
                     binding.judgementText.text = judgeResultText
                     binding.judgementText.setTextColor(judgeResultColor)
                     binding.scoreText.text = "%08.4f %%".format(currentScore)
@@ -284,30 +304,99 @@ class RhythmFitnessFragment : Fragment() {
             })
         }
 
-        fun returnRandomJudgement(): JudgementGrade {
-            val resultGrade: List<JudgementGrade> = listOf(
-                JudgementGrade.MISS,
-                JudgementGrade.SLOW,
-                JudgementGrade.GREAT_SLOW,
-                JudgementGrade.PERFECT_SLOW,
-                JudgementGrade.PERFECT,
-                JudgementGrade.PERFECT_FAST,
-                JudgementGrade.GREAT_FAST,
-                JudgementGrade.FAST,
-            )
-            return resultGrade[Random.nextInt(resultGrade.size)]
+        fun baseJudgement(maxIdx: Int, maxVal: Float): JudgementGrade {
+            val ctxIntGet: (Int) -> Int = { x -> context?.resources?.getInteger(x) as Int }
+            if (maxVal.absoluteValue < ctxIntGet(R.integer.judgement_threshold).toFloat() / 1000) {
+                return JudgementGrade.MISS
+            }
+
+            return when (maxIdx) {
+                in -25 ..< ctxIntGet(R.integer.slow_slow_great_threshold) -> JudgementGrade.SLOW
+                in ctxIntGet(R.integer.slow_slow_great_threshold) ..< ctxIntGet(R.integer.slow_great_slow_perfect_threshold) -> JudgementGrade.GREAT_SLOW
+                in ctxIntGet(R.integer.slow_great_slow_perfect_threshold) ..< ctxIntGet(R.integer.slow_perfect_perfect_threshold) -> JudgementGrade.PERFECT_SLOW
+                in ctxIntGet(R.integer.slow_perfect_perfect_threshold) ..< ctxIntGet(R.integer.perfect_fast_perfect_threshold) -> JudgementGrade.PERFECT
+                in ctxIntGet(R.integer.perfect_fast_perfect_threshold) ..< ctxIntGet(R.integer.fast_perfect_fast_great_threshold) -> JudgementGrade.PERFECT_FAST
+                in ctxIntGet(R.integer.fast_perfect_fast_great_threshold) ..< ctxIntGet(R.integer.fast_great_fast_threshold) -> JudgementGrade.GREAT_FAST
+                in ctxIntGet(R.integer.fast_great_fast_threshold) .. 25 -> JudgementGrade.FAST
+                else -> JudgementGrade.MISS
+            }
         }
 
+        fun judgementPush(): JudgementGrade {
+            val (maxIdxPos: Int, maxValPos: Float) = gyroCirq.getMaximumActivityOf { arr -> arr[0] }        // PushStart or PullStop
+            val (maxIdxNeg: Int, maxValNeg: Float) = gyroCirq.getMaximumActivityOf { arr -> -1 * arr[0] }   // PullStart or PushStop
+            if (maxIdxPos > maxIdxNeg) {   // PushStop -> PushStart then Pull
+                return JudgementGrade.MISS
+            }
+            Log.d("Push", "%d %f / %d %f".format(maxIdxPos, maxValPos, maxIdxNeg, maxValNeg))
+            return baseJudgement(maxIdxPos, maxValPos)
+        }
+
+        fun judgementPull(): JudgementGrade {
+            val (maxIdxPos: Int, maxValPos: Float) = gyroCirq.getMaximumActivityOf { arr -> arr[0] }        // PushStart or PullStop
+            val (maxIdxNeg: Int, maxValNeg: Float) = gyroCirq.getMaximumActivityOf { arr -> -1 * arr[0] }   // PullStart or PushStop
+            if (maxIdxNeg > maxIdxPos) { // PullStart -> PullStop then Push
+                return JudgementGrade.MISS
+            }
+            Log.d("Pull", "%d %f / %d %f".format(maxIdxPos, maxValPos, maxIdxNeg, maxValNeg))
+            return baseJudgement(maxIdxNeg, maxValNeg)
+        }
+
+        fun judgementRaise(): JudgementGrade {
+            val (maxIdxPos: Int, maxValPos: Float) = gyroCirq.getMaximumActivityOf { arr -> arr[1] }        // RaiseStart or HitStop
+            val (maxIdxNeg: Int, maxValNeg: Float) = gyroCirq.getMaximumActivityOf { arr -> -1 * arr[1] }   // HitStart or RaiseStop
+            Log.d("Raise", "%d %f / %d %f".format(maxIdxPos, maxValPos, maxIdxNeg, maxValNeg))
+            if (maxIdxPos > maxIdxNeg) {
+                return JudgementGrade.MISS
+            }
+
+            return baseJudgement(maxIdxPos, maxValPos)
+        }
+
+        fun judgementHit(): JudgementGrade {
+            val (maxIdxPos: Int, maxValPos: Float) = gyroCirq.getMaximumActivityOf { arr -> arr[1] }        // RaiseStart or HitStop
+            val (maxIdxNeg: Int, maxValNeg: Float) = gyroCirq.getMaximumActivityOf { arr -> -1 * arr[1] }   // HitStart or RaiseStop
+            Log.d("Hit", "%d %f / %d %f".format(maxIdxPos, maxValPos, maxIdxNeg, maxValNeg))
+            if (maxIdxNeg > maxIdxPos) {
+                return JudgementGrade.MISS
+            }
+            return baseJudgement(maxIdxNeg, maxValNeg)
+        }
+
+        fun judgementLeftBend(): JudgementGrade {
+            val (maxIdxPos: Int, maxValPos: Float) = gyroCirq.getMaximumActivityOf { arr -> arr[2] }        // RaiseStart or HitStop
+            val (maxIdxNeg: Int, maxValNeg: Float) = gyroCirq.getMaximumActivityOf { arr -> -1 * arr[2] }   // HitStart or RaiseStop
+            Log.d("Left", "%d %f / %d %f".format(maxIdxPos, maxValPos, maxIdxNeg, maxValNeg))
+            if (maxIdxNeg > maxIdxPos) {
+                return JudgementGrade.MISS
+            }
+            return baseJudgement(maxIdxNeg, maxValNeg)
+        }
+
+        fun judgementRightBend(): JudgementGrade {
+            val (maxIdxPos: Int, maxValPos: Float) = gyroCirq.getMaximumActivityOf { arr -> arr[2] }        // RaiseStart or HitStop
+            val (maxIdxNeg: Int, maxValNeg: Float) = gyroCirq.getMaximumActivityOf { arr -> -1 * arr[2] }   // HitStart or RaiseStop
+            Log.d("Right", "%d %f / %d %f".format(maxIdxPos, maxValPos, maxIdxNeg, maxValNeg))
+            if (maxIdxPos > maxIdxNeg) {
+                return JudgementGrade.MISS
+            }
+
+            return baseJudgement(maxIdxPos, maxValPos)
+        }
+
+
+
+
         fun returnAnyResult(judge: JudgementGrade): Pair<String, Int> {
-            when(judge) {
-                JudgementGrade.MISS -> return "MISS" to context?.getColor(R.color.judge_miss) as Int
-                JudgementGrade.SLOW -> return "SLOW" to context?.getColor(R.color.judge_slow) as Int
-                JudgementGrade.GREAT_SLOW -> return "GREAT-SLOW" to context?.getColor(R.color.judge_great_slow) as Int
-                JudgementGrade.PERFECT_SLOW -> return "PERFECT-SLOW" to context?.getColor(R.color.judge_perfect_slow) as Int
-                JudgementGrade.PERFECT -> return "PERFECT" to context?.getColor(R.color.judge_perfect) as Int
-                JudgementGrade.PERFECT_FAST -> return "PERFECT-FAST" to context?.getColor(R.color.judge_perfect_fast) as Int
-                JudgementGrade.GREAT_FAST -> return "GREAT-FAST" to context?.getColor(R.color.judge_great_fast) as Int
-                JudgementGrade.FAST -> return "FAST" to context?.getColor(R.color.judge_fast) as Int
+            return when(judge) {
+                JudgementGrade.MISS -> "MISS" to context?.getColor(R.color.judge_miss) as Int
+                JudgementGrade.SLOW -> "SLOW" to context?.getColor(R.color.judge_slow) as Int
+                JudgementGrade.GREAT_SLOW -> "GREAT-SLOW" to context?.getColor(R.color.judge_great_slow) as Int
+                JudgementGrade.PERFECT_SLOW -> "PERFECT-SLOW" to context?.getColor(R.color.judge_perfect_slow) as Int
+                JudgementGrade.PERFECT -> "PERFECT" to context?.getColor(R.color.judge_perfect) as Int
+                JudgementGrade.PERFECT_FAST -> "PERFECT-FAST" to context?.getColor(R.color.judge_perfect_fast) as Int
+                JudgementGrade.GREAT_FAST -> "GREAT-FAST" to context?.getColor(R.color.judge_great_fast) as Int
+                JudgementGrade.FAST -> "FAST" to context?.getColor(R.color.judge_fast) as Int
             }
         }
     }
@@ -317,15 +406,23 @@ class RhythmFitnessFragment : Fragment() {
         var pointer: Int = 0
         val capacity = windowSize
 
+        fun scqClear() {
+            for (i in 0 ..< capacity) {
+                sensorArray[i] = floatArrayOf(0.0F, 0.0F, 0.0F)
+                pointer = 0
+            }
+        }
+
         fun scqPush(x: Float, y: Float, z: Float)  {
-            sensorArray[pointer][0] = x
-            sensorArray[pointer][1] = y
-            sensorArray[pointer][2] = z
+            // Now detects jerk
+            sensorArray[pointer][0] = x - sensorArray[(pointer + capacity - 1) % capacity][0]
+            sensorArray[pointer][1] = y - sensorArray[(pointer + capacity - 1) % capacity][1]
+            sensorArray[pointer][2] = z - sensorArray[(pointer + capacity - 1) % capacity][2]
             pointer += 1
             pointer %= capacity
         }
 
-        fun getMaximumActivity (): Int {
+        fun getMaximumActivityOf (fn: (FloatArray) -> Float ): Pair<Int, Float> {
             /*
                           (1)
                       (0)  |       (2)
@@ -338,9 +435,23 @@ class RhythmFitnessFragment : Fragment() {
                 ...(1) function returns zero - perfect job!
                 ...(2) function returns fair positive value. too slow.
              */
-            val getMagnitude: (FloatArray) -> Float = {arr -> arr[0].pow(2) + arr[1].pow(2) + arr[2].pow(2)}
-            var maxIdx = sensorArray.indices.maxBy { getMagnitude(sensorArray[it]) }
-            return ((maxIdx + capacity) % capacity) - (capacity / 2)
+            var maxIdx = sensorArray.indices.maxBy { fn(sensorArray[it]) }
+            val offmaxIdx = ((maxIdx + capacity + (resources?.getInteger(R.integer.judgement_offset) as Int)) % capacity) - (capacity / 2)
+            val maxIdxValue = fn(sensorArray[maxIdx])
+
+            return Pair(offmaxIdx, maxIdxValue)
+        }
+    }
+
+    fun judgementSymbol(actionCategory: Int): String {
+        return when(actionCategory) {
+            0 -> "←"
+            1 -> "→"
+            2 -> "↑"
+            3 -> "↓"
+            4 -> "⨀"
+            5 -> "⨂"
+            else -> "?"
         }
     }
 }
