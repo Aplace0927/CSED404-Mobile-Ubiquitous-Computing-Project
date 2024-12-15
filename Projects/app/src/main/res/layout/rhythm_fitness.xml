@@ -97,16 +97,66 @@
                 android:textSize="48dp"
                 />
 
-            <TextView
-                android:id="@+id/judgement_line_m"
+            <RelativeLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
                 android:gravity="center"
-                android:textAlignment="center"
-                android:textSize="48dp"
-                android:text="━━━━━"
-                android:translationY="-500dp"/>
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/judgement_line_m0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center"
+                    android:text="━━━━━"
+                    android:textAlignment="center"
+                    android:textSize="48dp"
+                    android:translationY="-500dp" />
+
+                <TextView
+                    android:id="@+id/judgement_line_m1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center"
+                    android:text="━━━━━"
+                    android:textAlignment="center"
+                    android:textSize="48dp"
+                    android:translationY="-500dp" />
+
+                <TextView
+                    android:id="@+id/judgement_line_m2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center"
+                    android:text="━━━━━"
+                    android:textAlignment="center"
+                    android:textSize="48dp"
+                    android:translationY="-500dp" />
+
+                <TextView
+                    android:id="@+id/judgement_line_m3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center"
+                    android:text="━━━━━"
+                    android:textAlignment="center"
+                    android:textSize="48dp"
+                    android:translationY="-500dp" />
+
+                <TextView
+                    android:id="@+id/judgement_line_m4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center"
+                    android:text="━━━━━"
+                    android:textAlignment="center"
+                    android:textSize="48dp"
+                    android:translationY="-500dp" />
+            </RelativeLayout>
 
             <TextView
                 android:id="@+id/judgement_line_r"

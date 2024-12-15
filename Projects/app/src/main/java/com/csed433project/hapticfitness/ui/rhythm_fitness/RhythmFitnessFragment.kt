@@ -140,6 +140,7 @@ class RhythmFitnessFragment : Fragment() {
 
                 timeStampStart = System.currentTimeMillis()
 
+                judge.setupArrayQueue()
                 judge.currentScore = 101.0000
 
                 judge.mapPlayingReader = BufferedReader(InputStreamReader(resources.assets.open("rhythm_map.dat")))
@@ -224,9 +225,23 @@ class RhythmFitnessFragment : Fragment() {
         var nextAction: String? = ""
         var noteCount: Int = 0
 
+        var currentAnimObject: Int = 0
         var currentScore: Double = 101.0000
         val rhythmThreshold = resources.getInteger(R.integer.judgement_threshold).toFloat()
 
+        var actionTimeQueue: ArrayDeque<Long> = ArrayDeque<Long>()
+
+        fun setupArrayQueue () {
+            val mapReader = BufferedReader(InputStreamReader(resources.assets.open("rhythm_map.dat")))
+            mapReader.readLine()
+            var nextAction = mapReader.readLine()
+            while (nextAction != null) {
+                if (nextAction.split(" ")[1].toLong() >= 0){
+                    actionTimeQueue.addLast(nextAction.split(" ")[0].toLong())
+                }
+                nextAction = mapReader.readLine()
+            }
+        }
 
         override fun run() {
             while (nextAction != null) {
@@ -240,13 +255,21 @@ class RhythmFitnessFragment : Fragment() {
                     return
                 }
 
-                if ((System.currentTimeMillis() - timeStampStart >= nextActionTime - resources.getInteger(R.integer.animation_window) / 2) &&
-                    (System.currentTimeMillis() - timeStampStart < nextActionTime - resources.getInteger(R.integer.animation_window) / 2 + 2)) {    // Tolerance 5 Frame
+                val nearestAction = actionTimeQueue.first()
+                if ((System.currentTimeMillis() - timeStampStart >= nearestAction - resources.getInteger(R.integer.animation_window) / 2) &&
+                    (System.currentTimeMillis() - timeStampStart < nearestAction - resources.getInteger(R.integer.animation_window) / 2 + 2)) {    // Tolerance 5 Frame
+                    currentAnimObject = (currentAnimObject + 1) % 5
+                    actionTimeQueue.removeFirst()
                     activity?.runOnUiThread(object: Runnable {
                         override fun run() {
-                            binding.judgementLineM.startAnimation(
-                                AnimationUtils.loadAnimation(context, R.anim.linear_move)
-                            )
+                            when (currentAnimObject) {
+                                0 -> binding.judgementLineM0.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                1 -> binding.judgementLineM1.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                2 -> binding.judgementLineM2.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                3 -> binding.judgementLineM3.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                4 -> binding.judgementLineM4.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                else -> binding.judgementLineM0.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                            }
                         }
                     })
                 }
@@ -264,6 +287,10 @@ class RhythmFitnessFragment : Fragment() {
                 binding.buttonLeft.setOnClickListener({Log.d("Chart", "Left %d".format(currentElapsed))})
                 binding.buttonRight.setOnClickListener({Log.d("Chart", "Right %d".format(currentElapsed))})
                 */
+
+                if (nextActionCategory == -1) { // Map finish
+                    nextAction = mapPlayingReader.readLine()
+                }
 
                 if (accelMovAvg.movX > rhythmThreshold && nextActionCategory == 0 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
                     Log.d("Push", "Push [%d]-[%d]".format(nextActionTime,  currentElapsed))
