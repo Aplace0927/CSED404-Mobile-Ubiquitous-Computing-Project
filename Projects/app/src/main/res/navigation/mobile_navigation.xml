@@ -12,13 +12,20 @@
         tools:layout="@layout/fragment_home" >
         <action
             android:id="@+id/action_nav_home_to_nav_rhythm_fitness"
-            app:destination="@id/nav_rhythm_fitness" />
+            app:destination="@id/nav_rhythm_fitness"
+            app:popUpTo="@id/nav_home" />
         <action
             android:id="@+id/action_nav_home_to_nav_back_stretch"
-            app:destination="@id/nav_back_stretch" />
+            app:destination="@id/nav_back_stretch"
+            app:popUpTo="@id/nav_home" />
         <action
             android:id="@+id/action_nav_home_to_nav_squat"
-            app:destination="@id/nav_squat" />
+            app:destination="@id/nav_squat"
+            app:popUpTo="@id/nav_home" />
+        <action
+            android:id="@+id/action_nav_home_to_nav_side_stretch"
+            app:destination="@id/nav_side_stretch"
+            app:popUpTo="@id/nav_home" />
 
     </fragment>
 
@@ -39,5 +46,10 @@
         android:name="com.csed433project.hapticfitness.ui.squat.SquatFragment"
         android:label="@string/menu_squat"
         tools:layout="@layout/squat" />
+    <fragment
+        android:id="@+id/nav_side_stretch"
+        android:name="com.csed433project.hapticfitness.ui.side_stretch.SideStretchFragment"
+        android:label="@string/menu_side_stretch"
+        tools:layout="@layout/sidestretch" />
 
 </navigation>

@@ -50,13 +50,10 @@ class SquatFragment : Fragment() {
 
     
     fun actionHandlerExerciseZone (angle: Int): CombinedVibration? {
-        /*
-            Inverse proportional: (angle) 45-120deg -> (intensity) 1-255.
-         */
-        if (45 < angle && angle <= 120) {
+        if (-30 <= angle && angle <= 30) {
             val interval: Long = 100
             val strength: Int = 1.coerceAtLeast(
-                255.coerceAtMost(((254 * (angle - 45) / (120 - 45)).toDouble().roundToInt()))
+                255.coerceAtMost((254 * (1 - angle.absoluteValue / 30).toDouble().roundToInt()))
             )
             return CombinedVibration.createParallel(VibrationEffect.createOneShot(interval, strength))
         }
@@ -64,13 +61,9 @@ class SquatFragment : Fragment() {
     }
 
     fun actionHandlerDangerZone (angle: Int): CombinedVibration? {
-        /*
-            If angle > 120 -> Dangerous signal.
-         */
-
-        if (angle > 120) {
+        if (angle > 30) {
             val interval: Long = 30
-            val strength: Int = 255
+            val strength: Int = 10
             return CombinedVibration.createParallel(VibrationEffect.createOneShot(interval, strength))
         }
         return null
@@ -83,8 +76,6 @@ class SquatFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val squatViewModel =
-            ViewModelProvider(this).get(SquatViewModel::class.java)
 
         _binding = SquatBinding.inflate(inflater, container, false)
         val root: View = binding.root
@@ -113,7 +104,7 @@ class SquatFragment : Fragment() {
                     SensorManager.getRotationMatrixFromVector(rotMat, event.values)
                     SensorManager.getOrientation(rotMat, orientationAngles)
 
-                    angle = Math.toDegrees(orientationAngles[2].toDouble()).roundToInt()
+                    angle = Math.toDegrees(orientationAngles[1].toDouble()).roundToInt()
 
                     binding.valueText.text = "%03d".format(angle.absoluteValue)
                     binding.progressBar.scaleY = if (angle >= 0) -1.0F else 1.0F

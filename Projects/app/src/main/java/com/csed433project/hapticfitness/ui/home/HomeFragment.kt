@@ -4,9 +4,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import android.widget.Button
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.findNavController
+import androidx.navigation.fragment.findNavController
+import com.csed433project.hapticfitness.R
 import com.csed433project.hapticfitness.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
@@ -22,16 +24,17 @@ class HomeFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val homeViewModel =
-            ViewModelProvider(this).get(HomeViewModel::class.java)
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val textView: TextView = binding.textHome
-        homeViewModel.text.observe(viewLifecycleOwner) {
-            textView.text = it
-        }
+        val navController = findNavController()
+
+        binding.backStretchButton.setOnClickListener { navController.navigate(R.id.action_nav_home_to_nav_back_stretch) }
+        binding.sideStretchButton.setOnClickListener { navController.navigate(R.id.action_nav_home_to_nav_side_stretch) }
+        binding.squatButton.setOnClickListener { navController.navigate(R.id.action_nav_home_to_nav_squat) }
+        binding.rhythmFitButton.setOnClickListener { navController.navigate(R.id.action_nav_home_to_nav_rhythm_fitness) }
+
         return root
     }
 

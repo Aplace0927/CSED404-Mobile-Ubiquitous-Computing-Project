@@ -1,4 +1,4 @@
-package com.csed433project.hapticfitness.ui.back_stretch
+package com.csed433project.hapticfitness.ui.side_stretch
 
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -18,13 +18,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.csed433project.hapticfitness.databinding.BackstretchBinding
+import com.csed433project.hapticfitness.databinding.SidestretchBinding
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
-class BackStretchFragment : Fragment() {
+class SideStretchFragment : Fragment() {
 
-    private var _binding: BackstretchBinding? = null
+    private var _binding: SidestretchBinding? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -40,7 +40,7 @@ class BackStretchFragment : Fragment() {
     private lateinit var rotVctSensorEventListener: SensorEventListener
     private lateinit var sensorHandlerThread: HandlerThread
     private lateinit var sensorWorker: Handler
-
+    
     private val rotMat: FloatArray = floatArrayOf(
         1.0F, 0.0F, 0.0F, 0.0F,
         0.0F, 1.0F, 0.0F, 0.0F,
@@ -48,14 +48,12 @@ class BackStretchFragment : Fragment() {
         0.0F, 0.0F, 0.0F, 1.0F,
     )
 
+    
     fun actionHandlerExerciseZone (angle: Int): CombinedVibration? {
-        /*
-            Inverse proportional: (angle) 45-120deg -> (intensity) 1-255.
-         */
-        if (45 < angle && angle <= 120) {
+        if (20 < angle.absoluteValue && angle.absoluteValue <= 50) {
             val interval: Long = 100
             val strength: Int = 1.coerceAtLeast(
-                255.coerceAtMost(((254 * (angle - 45) / (120 - 45)).toDouble().roundToInt()))
+                255.coerceAtMost(((254 * (angle - 20) / (50 - 20)).toDouble().roundToInt()))
             )
             return CombinedVibration.createParallel(VibrationEffect.createOneShot(interval, strength))
         }
@@ -63,18 +61,14 @@ class BackStretchFragment : Fragment() {
     }
 
     fun actionHandlerDangerZone (angle: Int): CombinedVibration? {
-        /*
-            If angle > 120 -> Dangerous signal.
-         */
-
-        if (angle > 120) {
+        if (angle.absoluteValue > 50) {
             val interval: Long = 30
             val strength: Int = 255
             return CombinedVibration.createParallel(VibrationEffect.createOneShot(interval, strength))
         }
         return null
     }
-
+    
     private val actionHandlerArray: Array<(Int) -> CombinedVibration?> = arrayOf(::actionHandlerExerciseZone, ::actionHandlerDangerZone)
 
     override fun onCreateView(
@@ -83,7 +77,7 @@ class BackStretchFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
 
-        _binding = BackstretchBinding.inflate(inflater, container, false)
+        _binding = SidestretchBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
         val orientationAngles = FloatArray(3)
@@ -103,22 +97,18 @@ class BackStretchFragment : Fragment() {
         vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
 
         vibrator = VibrationCaller()
-
+        
         rotVctSensorEventListener = object: SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
                 if (event?.sensor?.type == Sensor.TYPE_ROTATION_VECTOR) {
                     SensorManager.getRotationMatrixFromVector(rotMat, event.values)
                     SensorManager.getOrientation(rotMat, orientationAngles)
 
-                    angle = Math.toDegrees(orientationAngles[2].toDouble()).roundToInt()
+                    angle = Math.toDegrees(orientationAngles[1].toDouble()).roundToInt()
 
-                    activity?.runOnUiThread(object : Runnable {
-                        override fun run() {
-                            binding.valueText.text = "%03d".format(angle.absoluteValue)
-                            binding.progressBar.scaleY = if (angle >= 0) -1.0F else 1.0F
-                            binding.progressBar.setProgress(angle.absoluteValue, true)
-                        }
-                    })
+                    binding.valueText.text = "%03d".format(angle.absoluteValue)
+                    binding.progressBar.scaleY = if (angle >= 0) -1.0F else 1.0F
+                    binding.progressBar.setProgress(angle.absoluteValue, true)
 
                     actionHandlerArray.forEach { fn ->
                         val vibEff = fn(angle.absoluteValue)
@@ -144,13 +134,12 @@ class BackStretchFragment : Fragment() {
             3. Stop Sensor thread
             4. super.onDestroyView()
          */
+
+        _binding = null
         vibratorManager.cancel()
         vibrationThread.quitSafely()
 
         sensorHandlerThread.quitSafely()
-
-        _binding = null
-
         super.onDestroyView()
     }
 

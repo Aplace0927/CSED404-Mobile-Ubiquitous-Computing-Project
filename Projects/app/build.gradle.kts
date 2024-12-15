@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.csed433project.hapticfitness"
-        minSdk = 28
+        minSdk = 31
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"

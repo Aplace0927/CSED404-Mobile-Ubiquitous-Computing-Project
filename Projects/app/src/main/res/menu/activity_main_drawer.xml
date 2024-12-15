@@ -17,6 +17,10 @@
             android:icon="@drawable/ic_menu_gallery"
             android:title="@string/menu_back_stretch" />
         <item
+            android:id="@+id/nav_side_stretch"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="@string/menu_side_stretch" />
+        <item
             android:id="@+id/nav_squat"
             android:icon="@drawable/ic_menu_gallery"
             android:title="@string/menu_squat" />
