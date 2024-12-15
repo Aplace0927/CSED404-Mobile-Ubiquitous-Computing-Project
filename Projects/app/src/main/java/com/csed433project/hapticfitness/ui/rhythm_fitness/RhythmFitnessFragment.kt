@@ -16,9 +16,12 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.VibrationEffect
 import android.os.VibratorManager
+import android.app.Dialog
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.csed433project.hapticfitness.R
@@ -114,8 +117,6 @@ class RhythmFitnessFragment : Fragment() {
         vibrationThread.start()
         vibrationWorker = Handler(vibrationThread.looper)
 
-        mediaPlayer = MediaPlayer.create(context, R.raw.remix10)
-
         judge = Judge()
 
         vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -141,6 +142,7 @@ class RhythmFitnessFragment : Fragment() {
                 timeStampStart = System.currentTimeMillis()
 
                 judge.setupArrayQueue()
+                judge.resetJudgeResult()
                 judge.currentScore = 101.0000
 
                 judge.mapPlayingReader = BufferedReader(InputStreamReader(resources.assets.open("rhythm_map.dat")))
@@ -151,6 +153,8 @@ class RhythmFitnessFragment : Fragment() {
                 binding.scoreText.text = "%08.4f %%".format(judge.currentScore)
 
                 judgementThread = Thread(judge)
+
+                mediaPlayer = MediaPlayer.create(context, R.raw.remix10)
                 mediaPlayer.start()
                 judgementThread.start()
             }
@@ -225,20 +229,38 @@ class RhythmFitnessFragment : Fragment() {
         var nextAction: String? = ""
         var noteCount: Int = 0
 
+        var judgeResultMiss: Int = 0
+        var judgeResultFast: Int = 0
+        var judgeResultGreatFast: Int = 0
+        var judgeResultPerfectFast: Int = 0
+        var judgeResultPerfect: Int = 0
+        var judgeResultPerfectSlow: Int = 0
+        var judgeResultGreatSlow: Int = 0
+        var judgeResultSlow: Int = 0
+
         var currentAnimObject: Int = 0
         var currentScore: Double = 101.0000
         val rhythmThreshold = resources.getInteger(R.integer.judgement_threshold).toFloat()
 
         var actionTimeQueue: ArrayDeque<Long> = ArrayDeque<Long>()
 
+        fun resetJudgeResult () {
+            judgeResultMiss = 0
+            judgeResultFast = 0
+            judgeResultGreatFast = 0
+            judgeResultPerfectFast = 0
+            judgeResultPerfect = 0
+            judgeResultPerfectSlow = 0
+            judgeResultGreatSlow = 0
+            judgeResultSlow = 0
+        }
+
         fun setupArrayQueue () {
             val mapReader = BufferedReader(InputStreamReader(resources.assets.open("rhythm_map.dat")))
             mapReader.readLine()
             var nextAction = mapReader.readLine()
             while (nextAction != null) {
-                if (nextAction.split(" ")[1].toLong() >= 0){
-                    actionTimeQueue.addLast(nextAction.split(" ")[0].toLong())
-                }
+                actionTimeQueue.addLast(nextAction.split(" ")[0].toLong())
                 nextAction = mapReader.readLine()
             }
         }
@@ -255,23 +277,27 @@ class RhythmFitnessFragment : Fragment() {
                     return
                 }
 
-                val nearestAction = actionTimeQueue.first()
+                val nearestAction = if (actionTimeQueue.isEmpty()) { 0 } else {actionTimeQueue.first()}
                 if ((System.currentTimeMillis() - timeStampStart >= nearestAction - resources.getInteger(R.integer.animation_window) / 2) &&
                     (System.currentTimeMillis() - timeStampStart < nearestAction - resources.getInteger(R.integer.animation_window) / 2 + 2)) {    // Tolerance 5 Frame
                     currentAnimObject = (currentAnimObject + 1) % 5
-                    actionTimeQueue.removeFirst()
-                    activity?.runOnUiThread(object: Runnable {
-                        override fun run() {
-                            when (currentAnimObject) {
-                                0 -> binding.judgementLineM0.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
-                                1 -> binding.judgementLineM1.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
-                                2 -> binding.judgementLineM2.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
-                                3 -> binding.judgementLineM3.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
-                                4 -> binding.judgementLineM4.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
-                                else -> binding.judgementLineM0.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                    if (actionTimeQueue.isNotEmpty()) {
+                        actionTimeQueue.removeFirst()
+                    }
+                    if (actionTimeQueue.size != 1) {
+                        activity?.runOnUiThread(object: Runnable {
+                            override fun run() {
+                                when (currentAnimObject) {
+                                    0 -> binding.judgementLineM0.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                    1 -> binding.judgementLineM1.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                    2 -> binding.judgementLineM2.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                    3 -> binding.judgementLineM3.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                    4 -> binding.judgementLineM4.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                    else -> binding.judgementLineM0.startAnimation(AnimationUtils.loadAnimation(context, R.anim.linear_move))
+                                }
                             }
-                        }
-                    })
+                        })
+                    }
                 }
 
                 val currentElapsed = System.currentTimeMillis() - timeStampStart
@@ -288,11 +314,10 @@ class RhythmFitnessFragment : Fragment() {
                 binding.buttonRight.setOnClickListener({Log.d("Chart", "Right %d".format(currentElapsed))})
                 */
 
-                if (nextActionCategory == -1) { // Map finish
+                if (nextActionCategory == -1 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) { // Map finish
                     nextAction = mapPlayingReader.readLine()
                 }
-
-                if (accelMovAvg.movX > rhythmThreshold && nextActionCategory == 0 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
+                else if (accelMovAvg.movX > rhythmThreshold && nextActionCategory == 0 && (currentElapsed - nextActionTime).absoluteValue < resources.getInteger(R.integer.judgement_window) / 2) {
                     Log.d("Push", "Push [%d]-[%d]".format(nextActionTime,  currentElapsed))
                     judgement(nextActionTime - currentElapsed)
                     nextAction = mapPlayingReader.readLine()
@@ -328,18 +353,48 @@ class RhythmFitnessFragment : Fragment() {
                     nextAction = mapPlayingReader.readLine()
                 }
             }
+
             playing = PlayState.STOPPED
             binding.stateTransitButton.text = "START"
             mediaPlayer.stop()
             mediaPlayer.release()
+
+
+            activity?.runOnUiThread(object: Runnable {
+                override fun run() {
+                    var popupWindow = Dialog(context as Context)
+                    var rankString = accuracyToRank(currentScore)
+                    var rankColor = accuracyToColor(currentScore)
+                    popupWindow.setContentView(R.layout.popupwindow)
+                    popupWindow.findViewById<TextView>(R.id.accuracy_value).text = "%08.4f %%".format(currentScore)
+                    popupWindow.findViewById<TextView>(R.id.accuracy_value).setTextColor(rankColor)
+                    popupWindow.findViewById<TextView>(R.id.rank_value).text = rankString
+                    popupWindow.findViewById<TextView>(R.id.rank_value).setTextColor(rankColor)
+                    popupWindow.findViewById<TextView>(R.id.miss_count).text = "%d".format(judgeResultMiss)
+                    popupWindow.findViewById<TextView>(R.id.slow_count).text = "%d".format(judgeResultSlow)
+                    popupWindow.findViewById<TextView>(R.id.great_slow_count).text = "%d".format(judgeResultGreatSlow)
+                    popupWindow.findViewById<TextView>(R.id.perfect_slow_count).text = "%d".format(judgeResultPerfectSlow)
+                    popupWindow.findViewById<TextView>(R.id.perfect_count).text = "%d".format(judgeResultPerfect)
+                    popupWindow.findViewById<TextView>(R.id.perfect_fast_count).text = "%d".format(judgeResultPerfectFast)
+                    popupWindow.findViewById<TextView>(R.id.great_fast_count).text = "%d".format(judgeResultGreatFast)
+                    popupWindow.findViewById<TextView>(R.id.fast_count).text = "%d".format(judgeResultFast)
+
+                    popupWindow.findViewById<Button>(R.id.dismiss_button).setOnClickListener {popupWindow.dismiss()}
+                    popupWindow.show()
+                }
+            })
+
             return
         }
 
         fun judgement(timeElapsed: Long) {
             val judgeResult = baseJudgement(timeElapsed + resources.getInteger(R.integer.judgement_offset).toLong())
-            val (judgeResultText: String, judgeResultColor: Int) = returnAnyResult(judgeResult)
+            updateJudgeCount(judgeResult)
+            val (judgeResultText: String, judgeResultColor: Int) = returnGradeAsset(judgeResult)
 
             currentScore -= ((101.0000 - judgeResult.multiplier * 100.0000) / noteCount)
+            currentScore = currentScore.coerceAtLeast(0.0)
+
 
             vibrator.generateWithJudgement(judgeResult)
             vibrationWorker.post(vibrator)
@@ -349,6 +404,7 @@ class RhythmFitnessFragment : Fragment() {
                     binding.judgementText.text = judgeResultText
                     binding.judgementText.setTextColor(judgeResultColor)
                     binding.scoreText.text = "%08.4f %%".format(currentScore)
+                    binding.scoreText.setTextColor(accuracyToColor(currentScore))
 
                     if (nextAction != null) {
                         binding.judgementLineR.text = judgementSymbol(nextAction?.split(" ")?.get(1)?.toInt() as Int)
@@ -371,8 +427,20 @@ class RhythmFitnessFragment : Fragment() {
             }
         }
 
+        fun updateJudgeCount(judge: JudgementGrade) {
+            when(judge) {
+                JudgementGrade.MISS -> judgeResultMiss += 1
+                JudgementGrade.SLOW -> judgeResultSlow += 1
+                JudgementGrade.GREAT_SLOW -> judgeResultGreatSlow += 1
+                JudgementGrade.PERFECT_SLOW -> judgeResultPerfectSlow += 1
+                JudgementGrade.PERFECT -> judgeResultPerfect += 1
+                JudgementGrade.PERFECT_FAST -> judgeResultPerfectFast += 1
+                JudgementGrade.GREAT_FAST -> judgeResultGreatFast += 1
+                JudgementGrade.FAST -> judgeResultFast += 1
+            }
+        }
 
-        fun returnAnyResult(judge: JudgementGrade): Pair<String, Int> {
+        fun returnGradeAsset(judge: JudgementGrade): Pair<String, Int> {
             return when(judge) {
                 JudgementGrade.MISS -> "MISS" to context?.getColor(R.color.judge_miss) as Int
                 JudgementGrade.SLOW -> "SLOW" to context?.getColor(R.color.judge_slow) as Int
@@ -400,6 +468,7 @@ class RhythmFitnessFragment : Fragment() {
 
     fun judgementSymbol(actionCategory: Int): String {
         return when(actionCategory) {
+            -1 -> "◀"
             0 -> "←"
             1 -> "→"
             2 -> "↑"
@@ -407,6 +476,46 @@ class RhythmFitnessFragment : Fragment() {
             4 -> "⨀"
             5 -> "⨂"
             else -> "?"
+        }
+    }
+
+    fun accuracyToRank (acc: Double): String {
+        return when(acc) {
+            in 100.50 .. 101.00 -> "SSS+"
+            in 100.00 ..< 100.50 -> "SSS"
+            in 99.50 ..< 100.00 -> "SS+"
+            in 99.00 ..< 99.50 -> "SS"
+            in 98.00 ..< 99.00 -> "S+"
+            in 97.00 ..< 98.00 -> "S"
+            in 94.00 ..< 97.00 -> "AAA"
+            in 90.00 ..< 94.00 -> "AA"
+            in 80.00 ..< 90.00 -> "A"
+            in 75.00 ..< 80.00 -> "BBB"
+            in 70.00 ..< 75.00 -> "BB"
+            in 60.00 ..< 70.00 -> "B"
+            in 50.00 ..< 60.00 -> "C"
+            in 0.00 ..< 50.00 -> "D"
+            else -> "F"
+        }
+    }
+
+    fun accuracyToColor (acc: Double): Int {
+        return when(acc) {
+            in 100.50 .. 101.00 -> context?.resources?.getColor(R.color.rank_sssp) as Int
+            in 100.00 ..< 100.50 -> context?.resources?.getColor(R.color.rank_sss) as Int
+            in 99.50 ..< 100.00 -> context?.resources?.getColor(R.color.rank_ssp) as Int
+            in 99.00 ..< 99.50 -> context?.resources?.getColor(R.color.rank_ss) as Int
+            in 98.00 ..< 99.00 -> context?.resources?.getColor(R.color.rank_sp) as Int
+            in 97.00 ..< 98.00 -> context?.resources?.getColor(R.color.rank_s) as Int
+            in 94.00 ..< 97.00 -> context?.resources?.getColor(R.color.rank_aaa) as Int
+            in 90.00 ..< 94.00 -> context?.resources?.getColor(R.color.rank_aa) as Int
+            in 80.00 ..< 90.00 -> context?.resources?.getColor(R.color.rank_a) as Int
+            in 75.00 ..< 80.00 -> context?.resources?.getColor(R.color.rank_bbb) as Int
+            in 70.00 ..< 75.00 -> context?.resources?.getColor(R.color.rank_bb) as Int
+            in 60.00 ..< 70.00 -> context?.resources?.getColor(R.color.rank_b) as Int
+            in 50.00 ..< 60.00 -> context?.resources?.getColor(R.color.rank_c) as Int
+            in 0.00 ..< 50.00 ->  context?.resources?.getColor(R.color.rank_d) as Int
+            else -> context?.resources?.getColor(R.color.rank_f) as Int
         }
     }
 }

@@ -9,11 +9,27 @@
     <color name="white">#FFFFFFFF</color>
 
     <color name="judge_miss">#FF000000</color>
-    <color name="judge_slow">#FFFF5555</color>
-    <color name="judge_great_slow">#FFFF8888</color>
-    <color name="judge_perfect_slow">#FFFFCCCC</color>
-    <color name="judge_perfect">#FFCCFFCC</color>
-    <color name="judge_perfect_fast">#FFCCCCFF</color>
-    <color name="judge_great_fast">#FF8888FF</color>
-    <color name="judge_fast">#FF5555FF</color>
+    <color name="judge_slow">#FFFF2222</color>
+    <color name="judge_great_slow">#FFFF4444</color>
+    <color name="judge_perfect_slow">#FFFF8888</color>
+    <color name="judge_perfect">#FF88FF88</color>
+    <color name="judge_perfect_fast">#FF8888FF</color>
+    <color name="judge_great_fast">#FF4444FF</color>
+    <color name="judge_fast">#FF2222FF</color>
+
+    <color name="rank_sssp">#FFFFFF80</color>
+    <color name="rank_sss">#FFFFFF40</color>
+    <color name="rank_ssp">#FFFFFF00</color>
+    <color name="rank_ss">#FFFFE000</color>
+    <color name="rank_sp">#FFFFC000</color>
+    <color name="rank_s">#FFFFA000</color>
+    <color name="rank_aaa">#FFFF8000</color>
+    <color name="rank_aa">#FFFF4000</color>
+    <color name="rank_a">#FFFF0000</color>
+    <color name="rank_bbb">#FFFF0060</color>
+    <color name="rank_bb">#FFFF00C0</color>
+    <color name="rank_b">#FFFF00FF</color>
+    <color name="rank_c">#FFC020FF</color>
+    <color name="rank_d">#FF6060FF</color>
+    <color name="rank_f">#FF4040FF</color>
 </resources>
